@@ -46,14 +46,14 @@ class RiskEngine:
             "brand_whitelist_check": 70,
             "typosquatting": 70,
             "hidden_url": 65,
-            "shortened_urls": 35,
+            "shortened_urls": 75,
             "recipient_count_anomaly": 15,
-            "unusual_sending_time": 10,
+            "unusual_sending_time": 33,
 
             # AI weights
-            "generic_provider_vs_brand": 55,
-            "intent_mapping": 55,
-            "urgency_threat": 46,
+            "generic_provider_vs_brand": 75,
+            "intent_mapping": 75,
+            "urgency_threat": 56,
             "actionable_request": 65,
         }
         self.threshold = 50.0
@@ -73,7 +73,7 @@ class RiskEngine:
         strong_threat = (
                 (scores.get("generic_provider_vs_brand") or 0.0) > 0.3 or
                 (scores.get("brand_whitelist_check") or 0.0) > 0.3 or
-                (scores.get("typosquatting") or 0.0) >= 3.0 or
+                (scores.get("typosquatting") or 0.0) >= 0.1 or
                 (scores.get("reply_to_mismatch") or 0.0) > 0.3 or
                 (scores.get("hidden_url") or 0.0) > 0.3 or
                 (scores.get("intent_mapping") or 0.0) > 0.3 or
@@ -81,7 +81,6 @@ class RiskEngine:
         )
         if strong_threat:
             scores["outbound_history"] = 0.0
-            scores["brand_trust"] = 0.0
 
         weighted_sum = 0.0
         for signal, score in scores.items():
