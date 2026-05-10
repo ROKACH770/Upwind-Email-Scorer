@@ -49,7 +49,16 @@ def scan_brand_whitelist_deterministic(sender_name_lower: str, sender_email_lowe
         "microsoft": "microsoft.com",
         "google": "google.com",
         "apple": "apple.com",
-        "amazon": "amazon.com"
+        "amazon": "amazon.com",
+        "instagram": "instagram.com",
+        "facebook": "facebook.com",
+        "netflix": "netflix.com",
+        "fedex": "fedex.com",
+        "dropbox": "dropbox.com",
+        "zoom": "zoom.us",
+        "linkedin": "linkedin.com",
+        "spotify": "spotify.com",
+        "bank hapoalim": "bankhapoalim.co.il",
     }
 
     for brand, official_domain in protected_brands.items():
@@ -243,6 +252,11 @@ _URGENCY_ANCHORS = {
         "This is your final warning before your account is closed",
         "Immediate response is required to resolve this security issue",
         "We will terminate your access within the next 24 hours",
+        "Your account will be permanently deleted if you do not act now",
+        "Failure to respond within 24 hours will result in account termination",
+        "Immediate action required to secure your account",
+        "Download our security tool now to fix the breach",
+        "We detected suspicious activity on your device",
     ]
 }
 

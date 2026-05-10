@@ -71,13 +71,13 @@ class RiskEngine:
         # mostly added for tests
         scores = detection_scores.copy()  # ← חשוב
         strong_threat = (
-                (scores.get("generic_provider_vs_brand") or 0.0) > 0.5 or
-                (scores.get("brand_whitelist_check") or 0.0) > 0.5 or
-                (scores.get("typosquatting") or 0.0) >= 1.0 or
-                (scores.get("reply_to_mismatch") or 0.0) > 0.5 or
-                (scores.get("hidden_url") or 0.0) > 0.7 or
-                (scores.get("intent_mapping") or 0.0) > 0.5 or
-                (scores.get("urgency_threat") or 0.0) > 0.5
+                (scores.get("generic_provider_vs_brand") or 0.0) > 0.3 or
+                (scores.get("brand_whitelist_check") or 0.0) > 0.3 or
+                (scores.get("typosquatting") or 0.0) >= 3.0 or
+                (scores.get("reply_to_mismatch") or 0.0) > 0.3 or
+                (scores.get("hidden_url") or 0.0) > 0.3 or
+                (scores.get("intent_mapping") or 0.0) > 0.3 or
+                (scores.get("urgency_threat") or 0.0) > 0.3
         )
         if strong_threat:
             scores["outbound_history"] = 0.0
