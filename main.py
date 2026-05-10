@@ -52,9 +52,9 @@ class RiskEngine:
 
             # AI weights
             "generic_provider_vs_brand": 55,
-            "intent_mapping": 30,
-            "urgency_threat": 25,
-            "actionable_request": 25,
+            "intent_mapping": 55,
+            "urgency_threat": 46,
+            "actionable_request": 65,
         }
         self.threshold = 50.0
         self.temperature = 15.0
@@ -198,7 +198,7 @@ def analyze_email(payload: EmailPayload):
             "score": intermediate_score,
             "verdict": verdict,
             "breakdown": fast_path_scores,
-            "reasons": build_reasons(fast_path_scores) if intermediate_score >= 32 else [],
+            "reasons": build_reasons(fast_path_scores) if intermediate_score >= 18 else [],
             "ai_used": False,
         }
 
