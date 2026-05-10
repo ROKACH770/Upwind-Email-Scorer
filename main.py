@@ -109,7 +109,7 @@ def verdict_from_score(score: int) -> str:
 
 #Humanreadable reasons for signals that contributed to the score used in the Google Addon UI
 # Only signals that score above this threshold will generate a reason for the user
-SIGNAL_THRESHOLD = 0.75
+SIGNAL_THRESHOLD = 0.45
 TRUST_SIGNALS = {"outbound_history"}
 
 # One clear sentence per signal, shown directly in the Google Addon
@@ -137,8 +137,6 @@ def build_reasons(breakdown: dict) -> list[str]:
         if score >= SIGNAL_THRESHOLD and signal in REASON_TEMPLATES:
             reasons.append(REASON_TEMPLATES[signal])
     return reasons
-
-
 @app.post("/analyze")
 def analyze_email(payload: EmailPayload):
     """
@@ -178,15 +176,16 @@ def analyze_email(payload: EmailPayload):
     }
 
     intermediate_score = engine.get_final_score(fast_path_scores)
+    is_trusted_brand = fast_path_scores.get("brand_trust", 0.0) == 1.0
 
     # Early Exit
-    if intermediate_score >= 60:
+    if intermediate_score >= 60 or is_trusted_brand:
         verdict = verdict_from_score(intermediate_score)
         return {
             "score": intermediate_score,
             "verdict": verdict,
             "breakdown": fast_path_scores,
-            "reasons": build_reasons(fast_path_scores),
+            "reasons": build_reasons(fast_path_scores) if intermediate_score >= 32 else [],
             "ai_used": False,
         }
 
@@ -210,6 +209,6 @@ def analyze_email(payload: EmailPayload):
         "score": final_score,
         "verdict": verdict,
         "breakdown": final_scores,
-        "reasons": build_reasons(final_scores),
+        "reasons": build_reasons(final_scores) if final_score >= 32 else [],
         "ai_used": True,
     }
