@@ -6,6 +6,8 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from typing import List, Optional
 import urllib.parse
+from pydantic import BaseModel, field_validator
+
 
 from MailScanner import*
 
@@ -32,6 +34,11 @@ class EmailPayload(BaseModel):
     inbound_count: int = 0
     current_sending_hour: int
     past_sending_hours: List[int] = []
+
+    @field_validator('body')
+    @classmethod
+    def sanitize_html(cls, value: str) -> str:
+        return re.sub(r'<[^>]+>', ' ', value)
 
 
 
@@ -76,8 +83,8 @@ class RiskEngine:
                 (scores.get("typosquatting") or 0.0) >= 0.1 or
                 (scores.get("reply_to_mismatch") or 0.0) > 0.3 or
                 (scores.get("hidden_url") or 0.0) > 0.3 or
-                (scores.get("intent_mapping") or 0.0) > 0.3 or
-                (scores.get("urgency_threat") or 0.0) > 0.3
+                (scores.get("intent_mapping") or 0.0) > 0.2 or
+                (scores.get("urgency_threat") or 0.0) > 0.2
         )
         if strong_threat:
             scores["outbound_history"] = 0.0

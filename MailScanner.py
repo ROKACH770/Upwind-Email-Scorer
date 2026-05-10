@@ -234,15 +234,27 @@ _INTENT_ANCHORS = {
         "Your account has been compromised and requires immediate verification",
         "Unusual login detected – confirm your identity to restore access",
         "We noticed suspicious activity on your account, please verify now",
+        "Someone tried to access your account from an unknown device",
+        "Confirm your identity immediately to restore access to your account",
+        "We have detected an unauthorized login attempt on your account",
     ],
     "payment_fraud": [
         "Your payment method has expired, update your billing information",
         "There is an outstanding balance on your account, pay immediately",
         "Your subscription payment failed, click here to update your card",
+        "A wire transfer is pending your approval, login to review",
+        "Please login to approve the pending transaction before it expires",
+        "Your bank account requires immediate verification to release funds",
+        "Transfer of funds is on hold, confirm your identity to proceed",
+        "A transaction of $3,450 requires your immediate approval",
+        "Your billing information is outdated, update now to avoid interruption",
     ],
     "prize_social_engineering": [
         "You have been selected to receive a special reward",
         "Congratulations, you won a gift card, claim your prize now",
+        "You have been chosen as our weekly winner, claim your prize",
+        "You have unclaimed funds waiting, submit your details to receive them",
+        "You are eligible for a special cashback reward, claim it now",
     ]
 }
 
@@ -257,6 +269,11 @@ _URGENCY_ANCHORS = {
         "Immediate action required to secure your account",
         "Download our security tool now to fix the breach",
         "We detected suspicious activity on your device",
+        "Your device has been compromised, immediate action required",
+        "Failure to act now will result in permanent data loss",
+        "You must verify your identity within the next hour or lose access",
+        "This offer expires in 24 hours, act now before it is too late",
+        "Your account will be suspended unless you respond immediately",
     ]
 }
 
@@ -266,6 +283,12 @@ _ACTION_ANCHORS = {
         "Please download the attachment to view your invoice",
         "Fill out the form and submit your personal details",
         "Login to your portal now to complete the update",
+        "Download our security tool now to protect your device",
+        "Click here to fix the security issue on your device",
+        "Submit your bank details to receive the transfer",
+        "Enter your personal information to claim your reward",
+        "Click the button below to approve the pending transaction",
+        "Scan the QR code to verify your identity and restore access",
     ]
 }
 
@@ -274,9 +297,13 @@ _CORPORATE_PERSONAS = [
     "billing and invoice department",
     "security alert administration",
     "human resources desk",
-    "it helpdesk"
+    "it helpdesk",
+    "account security team",
+    "payment processing department",
+    "fraud prevention team",
+    "technical support center",
+    "verification department",
 ]
-
 
 @lru_cache(maxsize=1)
 def load_ai_infrastructure():
@@ -286,7 +313,7 @@ def load_ai_infrastructure():
     """
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    all_anchor_centroids = {
+    all_anchor_embeddings = {
         "intent": {},
         "urgency": {},
         "action": {}
@@ -297,17 +324,14 @@ def load_ai_infrastructure():
         "urgency": _URGENCY_ANCHORS,
         "action": _ACTION_ANCHORS
     }
-
     for key, anchors in anchor_set.items():
         for category, sentences in anchors.items():
-            embeddings = model.encode(sentences, normalize_embeddings=True)
-            centroid = embeddings.mean(axis=0) #we get one vector that represents the overall concept of this category
-            all_anchor_centroids[key][category] = centroid / np.linalg.norm(centroid)
+            # the matrix of vectors
+            all_anchor_embeddings[key][category] = model.encode(sentences, normalize_embeddings=True)
 
-    # Pre-compute corporate personas for brand AI check
     persona_embeddings = model.encode(_CORPORATE_PERSONAS, normalize_embeddings=True)
 
-    return model, all_anchor_centroids, persona_embeddings
+    return model, all_anchor_embeddings, persona_embeddings
 
 
 
@@ -352,28 +376,27 @@ class ThreatScore(NamedTuple):
 
 
 def scan_text_with_ai(body: str, subject: str = "") -> ThreatScore:
-    """ AI Scanner for Text Analysis"""
+    """AI Scanner for Text Analysis"""
     try:
-        # Fetch the pre-loaded model and vectors (fast, no re-loading)
-        model, centroids, _ = load_ai_infrastructure()
+        model, anchor_embeddings, _ = load_ai_infrastructure()
     except Exception:
-        return ThreatScore(0.0, 0.0, 0.0,)
+        return ThreatScore(0.0, 0.0, 0.0)
 
     full_text = f"{subject}\n{body}".strip()
-
-    # Vectorize the incoming email
     email_vector = model.encode([full_text], normalize_embeddings=True)[0]
 
     scores = {}
 
-    for category_name, category_vectors in centroids.items():
+    # Iterate over the categories to define category_name and category_dict
+    for category_name, category_dict in anchor_embeddings.items():
+        max_similarity = 0.0
 
-        similarities = [
-            float(np.dot(email_vector, vec))
-            for vec in category_vectors.values() #we compare the email vec to each category vec and get a similarity score for each category
-        ]
+        for embeddings_matrix in category_dict.values():
+            similarities = np.dot(embeddings_matrix, email_vector)
+            current_max = float(similarities.max())
 
-        max_similarity = max(similarities, default=0.0)
+            if current_max > max_similarity:
+                max_similarity = current_max
 
         if max_similarity > 0.4:
             score = max(0.0, (max_similarity - 0.4) / 0.55)
@@ -388,22 +411,11 @@ def scan_text_with_ai(body: str, subject: str = "") -> ThreatScore:
             scores["intent"] * 0.45
     )
 
-
     if scores["urgency"] >= 0.65 and scores["action"] >= 0.65:
         total += 0.15
-
-    total = round(min(total, 1.0), 3)
-
-    if total >= 0.60:
-        verdict = "PHISHING"
-    elif total >= 0.35:
-        verdict = "SUSPICIOUS"
-    else:
-        verdict = "SAFE"
 
     return ThreatScore(
         urgency=round(scores["urgency"], 3),
         action=round(scores["action"], 3),
         intent=round(scores["intent"], 3),
-
     )
