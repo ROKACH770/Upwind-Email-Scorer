@@ -10,7 +10,7 @@ pinned: false
 
 A Gmail Addon that scores emails for phishing risk. Open an email, see a score from 0 to 100, a verdict, and a short explanation of what looked suspicious all inside Gmail.
 
-How it works
+## How it works
 The system has three layers, and that structure was a deliberate decision to save running time:
 
 Layer 1 is the Addon itself, built in Google Apps Script. It extracts everything from the open email and sends it to the backend.
