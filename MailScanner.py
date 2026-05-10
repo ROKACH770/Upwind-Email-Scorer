@@ -149,21 +149,27 @@ def detect_url_shortener(real_domain: str) -> float:
 
 def scan_recipient_anomaly(recipients_lower: Optional[List[str]], user_email_lower: str,
                            high_recipient_threshold: int = 10) -> float:
-    """Detects if the user was BCC'd or if there is an unusually high number of recipients."""
+    """BCC= Blind Carbon Copy, means the sender hides the recipient list"""
     if not recipients_lower:
         return 0.02
 
     score = 0.0
 
-    if user_email_lower not in recipients_lower:
-        score += 0.5 # User is not in the list likely BCC'd
+    def clean_email(raw_address: str) -> str:
+        """Helper to extract the raw email from a formatted string."""
+        match = re.search(r'<(.*?)>', raw_address)
+        return match.group(1).strip().lower() if match else raw_address.strip().lower()
+
+    clean_recipients = [clean_email(r) for r in recipients_lower]
+
+    if user_email_lower not in clean_recipients:
+        score += 0.5
 
     recipient_count = len(recipients_lower)
     if recipient_count >= high_recipient_threshold:
         excess_recipients = max(0, recipient_count - high_recipient_threshold)
         count_penalty = min(0.5, 0.2 + (excess_recipients * 0.02))
         score += count_penalty
-
     return round(min(1.0, score), 3)  #  doesn't necessarily phishing but increases risk
 
 
