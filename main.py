@@ -144,7 +144,7 @@ REASON_TEMPLATES = {
     "unusual_sending_time":       "This email arrived at an unusual hour compared to this sender's normal pattern.",
     "generic_provider_vs_brand":  "The sender uses a corporate-sounding name but sends from a free provider like Gmail or Yahoo.",
     "intent_mapping":             "AI detected language patterns consistent with account takeover or payment fraud attempts.",
-    "urgency_threat":             "AI detected pressure and threat language — a common social engineering technique.",
+    "urgency_threat":             "AI detected pressure and threat language  a common social engineering technique.",
     "actionable_request":         "AI detected a request to click a link, download a file, or submit personal information.",
 }
 

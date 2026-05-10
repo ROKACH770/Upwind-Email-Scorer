@@ -11,8 +11,6 @@ import Levenshtein
 
 
 #  MANUAL SCANNERS
-
-
 def scan_reply_to_mismatch(sender_email_lower: str, reply_to_email_lower: str) -> float:
     if not reply_to_email_lower or sender_email_lower == reply_to_email_lower:
         return 0.0
