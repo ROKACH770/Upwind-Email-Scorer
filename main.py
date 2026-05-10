@@ -40,8 +40,8 @@ class RiskEngine:
     def __init__(self):
         self.weights = {
             # Deterministic weights
-            "outbound_history": -120,
-            "brand_trust": -150,
+            "outbound_history": -80,
+            "brand_trust": -90,
             "reply_to_mismatch": 65,
             "brand_whitelist_check": 70,
             "typosquatting": 70,
@@ -69,20 +69,22 @@ class RiskEngine:
     def get_final_score(self, detection_scores: dict) -> int:
         # If strong threat signals exist history trust cannot cancel them out
         # mostly added for tests
+        scores = detection_scores.copy()  # ← חשוב
         strong_threat = (
-                (detection_scores.get("generic_provider_vs_brand") or 0.0) > 0.5 or
-                (detection_scores.get("brand_whitelist_check") or 0.0) > 0.5 or
-                (detection_scores.get("typosquatting") or 0.0) >= 1.0 or
-                (detection_scores.get("reply_to_mismatch") or 0.0) > 0.5 or
-                (detection_scores.get("hidden_url") or 0.0) > 0.7 or
-                (detection_scores.get("intent_mapping") or 0.0) > 0.5 or
-                (detection_scores.get("urgency_threat") or 0.0) > 0.5
+                (scores.get("generic_provider_vs_brand") or 0.0) > 0.5 or
+                (scores.get("brand_whitelist_check") or 0.0) > 0.5 or
+                (scores.get("typosquatting") or 0.0) >= 1.0 or
+                (scores.get("reply_to_mismatch") or 0.0) > 0.5 or
+                (scores.get("hidden_url") or 0.0) > 0.7 or
+                (scores.get("intent_mapping") or 0.0) > 0.5 or
+                (scores.get("urgency_threat") or 0.0) > 0.5
         )
         if strong_threat:
-            detection_scores["outbound_history"] = 0.0
+            scores["outbound_history"] = 0.0
+            scores["brand_trust"] = 0.0
 
         weighted_sum = 0.0
-        for signal, score in detection_scores.items():
+        for signal, score in scores.items():
             if signal in self.weights:
                 weighted_sum += self.weights[signal] * (score or 0.0)
         return math.floor(self.calculate_sigmoid(weighted_sum))
