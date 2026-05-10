@@ -66,7 +66,13 @@ class RiskEngine:
         exponent = max(-50.0, min(50.0, exponent))
         return 100.0 / (1.0 + math.exp(exponent))
 
+
     def get_final_score(self, detection_scores: dict) -> int:
+        #Added for QA testing: nullify history trust if brand impersonation is detected
+        if detection_scores.get("generic_provider_vs_brand", 0.0) > 0.5 or \
+                detection_scores.get("brand_whitelist_check", 0.0) > 0.5:
+            detection_scores["outbound_history"] = 0.0
+
         weighted_sum = 0.0
         for signal, score in detection_scores.items():
             if signal in self.weights:
