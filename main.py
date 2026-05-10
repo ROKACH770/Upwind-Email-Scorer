@@ -36,31 +36,35 @@ class EmailPayload(BaseModel):
 
 
 # RISK ENGINE
-
-
 class RiskEngine:
     def __init__(self):
         self.weights = {
             # Deterministic weights
-            "outbound_history": -90,     # Negative because it reduces risk
-            "reply_to_mismatch": 60,
-            "brand_whitelist_check": 60,
-            "typosquatting": 60,
-            "hidden_url": 50,
-            "shortened_urls": 50,
+            "outbound_history": -120,
+            "brand_trust": -150,
+            "reply_to_mismatch": 65,
+            "brand_whitelist_check": 70,
+            "typosquatting": 70,
+            "hidden_url": 65,
+            "shortened_urls": 35,
             "recipient_count_anomaly": 15,
             "unusual_sending_time": 10,
 
             # AI weights
-            "generic_provider_vs_brand": 50,
-            "intent_mapping": 45,
-            "urgency_threat": 37,
-            "actionable_request": 60,
+            "generic_provider_vs_brand": 55,
+            "intent_mapping": 30,
+            "urgency_threat": 25,
+            "actionable_request": 25,
         }
-        self.threshold = 45
+        self.threshold = 50.0
+        self.temperature = 15.0
 
     def calculate_sigmoid(self, z: float) -> float:
-        return 100 / (1 + math.exp(-(z - self.threshold)))
+        # Scale the input using temperature
+        exponent = -(z - self.threshold) / self.temperature
+        # Prevent math overflow errors
+        exponent = max(-50.0, min(50.0, exponent))
+        return 100.0 / (1.0 + math.exp(exponent))
 
     def get_final_score(self, detection_scores: dict) -> int:
         weighted_sum = 0.0
@@ -68,8 +72,6 @@ class RiskEngine:
             if signal in self.weights:
                 weighted_sum += self.weights[signal] * score
         return math.floor(self.calculate_sigmoid(weighted_sum))
-
-
 
 
 #ULOAD AI MODELS AND RESOURCES
@@ -97,9 +99,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 def verdict_from_score(score: int) -> str:
     """Converts a score into a verdict."""
-    if score >= 75:
+    if score >= 70:
         return "PHISHING"
-    if score >= 32:
+    if score >= 45:
         return "SUSPICIOUS"
     return "SAFE"
 
@@ -147,8 +149,8 @@ def analyze_email(payload: EmailPayload):
     reply_to_lower = payload.reply_to.strip().lower() if payload.reply_to else ""
     user_email_lower = payload.user_email.strip().lower()
     recipients_lower = [e.strip().lower() for e in payload.recipients]
-
     sender_domain = sender_email_lower.split("@")[1] if "@" in sender_email_lower else ""
+
 
     max_link_deception = 0.0
     max_shortener = 0.0
@@ -164,6 +166,7 @@ def analyze_email(payload: EmailPayload):
 
     #Fast Deterministic Scanners
     fast_path_scores = {
+        "brand_trust": scan_brand_trust(sender_domain),
         "reply_to_mismatch": scan_reply_to_mismatch(sender_email_lower, reply_to_lower),
         "outbound_history": scan_outbound_history(payload.outbound_count, payload.inbound_count),
         "brand_whitelist_check": scan_brand_whitelist_deterministic(sender_name_lower, sender_email_lower),

@@ -12,15 +12,19 @@ import Levenshtein
 
 #  MANUAL SCANNERS
 
+
 def scan_reply_to_mismatch(sender_email_lower: str, reply_to_email_lower: str) -> float:
-    """
-    Checks if the Reply-To address differs from the actual Sender address
-    """
-    if reply_to_email_lower and sender_email_lower != reply_to_email_lower:
-        return 0.77
+    if not reply_to_email_lower or sender_email_lower == reply_to_email_lower:
+        return 0.0
+
+    # Extract the domains
+    sender_domain = sender_email_lower.split("@")[-1] if "@" in sender_email_lower else ""
+    reply_domain = reply_to_email_lower.split("@")[-1] if "@" in reply_to_email_lower else ""
+
+    if sender_domain and reply_domain and sender_domain != reply_domain:
+        return 0.37
+
     return 0.0
-
-
 def scan_outbound_history(outbound_count: int, inbound_count: int) -> float:
     """
     Evaluates the trust level based on previous outbound communications.
@@ -188,6 +192,22 @@ def scan_unusual_sending_time(current_sending_hour: int, past_sending_hours: Lis
 
     if is_historical_day_sender and is_current_email_nighttime:
         return 0.8 #Normal users have stable sending patterns
+
+    return 0.0
+
+
+def scan_brand_trust(sender_domain: str) -> float:
+    """Checks if the sender email domain belongs to a trusted official brand."""
+    trusted_domains = {
+        "google.com", "microsoft.com", "paypal.com", "apple.com", "amazon.com",
+        "netflix.com", "github.com", "linkedin.com", "zoom.us", "facebook.com",
+        "instagram.com", "twitter.com", "dropbox.com", "spotify.com"
+    }
+
+
+    for trusted in trusted_domains:
+        if sender_domain == trusted or sender_domain.endswith("." + trusted):
+            return 1.0
 
     return 0.0
 
